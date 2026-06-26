@@ -258,7 +258,8 @@ def main():
     
     for symbol, announcements in all_results.items():
         table = Table(title=f"Latest Filings for {symbol}")
-        table.add_column("Date & Time", style="cyan", no_wrap=True)
+        table.add_column("Date", style="cyan", no_wrap=True)
+        table.add_column("Time", style="cyan", no_wrap=True)
         table.add_column("Category", style="green")
         table.add_column("Headline", style="magenta")
         table.add_column("Attachment (PDF)", style="blue")
@@ -267,13 +268,25 @@ def main():
         
         report_lines.append(f"## {symbol}")
         if not announcements:
-            table.add_row("No announcements found in the query period.", "", "", "", "", "")
+            table.add_row("No announcements found in the query period.", "", "", "", "", "", "")
             report_lines.append("No announcements found in the query period.\n")
         else:
-            report_lines.append("| Date & Time | Category | Headline | PDF Link | Sentiment | Rationale |")
-            report_lines.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
+            report_lines.append("| Date | Time | Category | Headline | PDF Link | Sentiment | Rationale |")
+            report_lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
             for ann in announcements[:10]:  # Limit to top 10 for readability
                 dt = ann.get("News_submission_dt") or ann.get("NEWS_DT") or "N/A"
+                
+                # Split Date and Time
+                normalized_dt = dt.replace('T', ' ').strip()
+                dt_parts = normalized_dt.split(' ')
+                if len(dt_parts) == 2:
+                    date_part, time_part = dt_parts[0], dt_parts[1]
+                    if '.' in time_part:
+                        time_part = time_part.split('.')[0]
+                else:
+                    date_part = dt
+                    time_part = "N/A"
+
                 category = ann.get("CATEGORYNAME") or "N/A"
                 headline = ann.get("HEADLINE") or ann.get("NEWSSUB") or "N/A"
                 pdf_file = ann.get("ATTACHMENTNAME")
@@ -289,8 +302,8 @@ def main():
                 
                 sentiment, rationale = classify_sentiment(category, headline)
                 
-                table.add_row(dt, category, headline, pdf_display, sentiment, rationale)
-                report_lines.append(f"| {dt} | {category} | {headline} | {markdown_pdf_link} | {sentiment} | {rationale} |")
+                table.add_row(date_part, time_part, category, headline, pdf_display, sentiment, rationale)
+                report_lines.append(f"| {date_part} | {time_part} | {category} | {headline} | {markdown_pdf_link} | {sentiment} | {rationale} |")
             report_lines.append("")
             
         console.print(table)
