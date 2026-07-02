@@ -211,8 +211,15 @@ def classify_sentiment(category: str, headline: str) -> tuple[str, str]:
         sentiment = "Positive"
         rationale = "Strategic acquisition indicating business expansion or partnership."
     elif "rating" in hl or "credit rating" in hl:
-        sentiment = "Positive"
-        rationale = "Credit rating update indicating creditworthiness."
+        if "downgrade" in hl:
+            sentiment = "Negative"
+            rationale = "Credit rating downgrade indicating decreased creditworthiness."
+        else:
+            sentiment = "Positive"
+            rationale = "Credit rating update indicating creditworthiness."
+    elif "penalty" in hl or "fine" in hl or "default" in hl or "warning" in hl or "fraud" in hl:
+        sentiment = "Negative"
+        rationale = "Negative corporate event, regulatory penalty, or financial default."
         
     return sentiment, rationale
 
@@ -248,6 +255,26 @@ def main():
         # Polite delay to avoid hitting rate limits
         time.sleep(2)
         
+    # Calculate overall sentiment for the heatmap
+    stock_sentiment = {}
+    for symbol, announcements in all_results.items():
+        if not announcements:
+            stock_sentiment[symbol] = "None"
+        else:
+            sentiments = []
+            for ann in announcements:
+                category = ann.get("CATEGORYNAME") or "N/A"
+                headline = ann.get("HEADLINE") or ann.get("NEWSSUB") or "N/A"
+                sentiment, _ = classify_sentiment(category, headline)
+                sentiments.append(sentiment)
+            
+            if any("Negative" in s for s in sentiments):
+                stock_sentiment[symbol] = "Negative"
+            elif any("Positive" in s for s in sentiments):
+                stock_sentiment[symbol] = "Positive"
+            else:
+                stock_sentiment[symbol] = "Neutral"
+
     # Print results to console and generate Markdown report
     report_lines = [
         "# Latest Corporate Disclosures & Regulatory Filings",
@@ -255,6 +282,30 @@ def main():
         f"Query Period (Local Time): {start_dt.strftime('%Y-%m-%d %H:%M:%S')} to {end_dt.strftime('%Y-%m-%d %H:%M:%S')}",
         ""
     ]
+    
+    # Generate Heatmap
+    report_lines.append("## Portfolio Heatmap")
+    report_lines.append("> 🔴 Negative | 🟢 Positive | 🟡 Neutral | ⚪ No Disclosures")
+    report_lines.append("")
+    
+    heatmap_parts = []
+    for symbol, overall_sent in stock_sentiment.items():
+        if overall_sent == "Negative":
+            icon = "🔴"
+        elif overall_sent == "Positive":
+            icon = "🟢"
+        elif overall_sent == "Neutral":
+            icon = "🟡"
+        else:
+            icon = "⚪"
+        anchor = symbol.lower().replace(" ", "-")
+        heatmap_parts.append(f"{icon} [{symbol}](#{anchor})")
+        
+    # Group heatmap parts to form a grid, or just space them out
+    report_lines.append(" | ".join(heatmap_parts))
+    report_lines.append("")
+    report_lines.append("---")
+    report_lines.append("")
     
     for symbol, announcements in all_results.items():
         table = Table(title=f"Latest Filings for {symbol}")
@@ -317,8 +368,14 @@ def main():
         report_lines.append("")
         
     # Write to both latest_disclosures.md and a dynamically named date log file
-    date_str = datetime.now().strftime("%d-%m-%Y")
-    log_filename = f"Portfolio_Disclosure_{date_str}.md"
+    now_dt = datetime.now()
+    year_str = now_dt.strftime("%Y")
+    month_str = now_dt.strftime("%m")
+    date_str = now_dt.strftime("%d-%m-%Y")
+    
+    out_dir = os.path.join(year_str, month_str)
+    os.makedirs(out_dir, exist_ok=True)
+    log_filename = os.path.join(out_dir, f"Portfolio_Disclosure_{date_str}.md")
     
     for filename in ["latest_disclosures.md", log_filename]:
         try:

@@ -2,6 +2,13 @@
 Generated on: 2026-06-26 16:37:28
 Query Period (Local Time): 2026-06-24 17:30:00 to 2026-06-26 16:36:31
 
+## Portfolio Heatmap
+> 🔴 Negative | 🟢 Positive | 🟡 Neutral | ⚪ No Disclosures
+
+🟡 [Aditya Birla Fashion & Retail Ltd](#aditya-birla-fashion-retail-ltd) | ⚪ [Ather Energy Ltd](#ather-energy-ltd) | ⚪ [Coal India Ltd](#coal-india-ltd) | ⚪ [Devyani International Ltd](#devyani-international-ltd) | 🟡 [General Insurance Corporation of India](#general-insurance-corporation-of-india) | 🟡 [HCL Technologies Ltd](#hcl-technologies-ltd) | 🟡 [HDFC Bank Ltd](#hdfc-bank-ltd) | 🟡 [Hyundai Motor India Ltd](#hyundai-motor-india-ltd) | 🟡 [Jyothy Labs Ltd](#jyothy-labs-ltd) | ⚪ [Kalyan Jewellers India Ltd](#kalyan-jewellers-india-ltd) | 🟢 [Nippon Life India Asset Management Ltd](#nippon-life-india-asset-management-ltd) | ⚪ [NTPC Green Energy Ltd](#ntpc-green-energy-ltd) | 🟡 [NTPC Ltd](#ntpc-ltd) | 🟢 [Powergrid Infrastructure Investment Trust](#powergrid-infrastructure-investment-trust) | 🟡 [Sheela Foam Ltd](#sheela-foam-ltd) | 🟡 [South Indian Bank Ltd](#south-indian-bank-ltd) | ⚪ [Tamilnad Mercantile Bank Ltd](#tamilnad-mercantile-bank-ltd) | ⚪ [Tata Motors Ltd](#tata-motors-ltd) | 🟡 [Tata Motors Passenger Vehicles Ltd](#tata-motors-passenger-vehicles-ltd) | 🟡 [Vedanta Ltd](#vedanta-ltd)
+
+---
+
 ## Aditya Birla Fashion & Retail Ltd
 | Date | Time | Category | Headline | PDF Link | Sentiment | Rationale |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
