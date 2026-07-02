@@ -278,9 +278,10 @@ def main():
                 stock_sentiment[symbol] = "Neutral"
 
     # Print results to console and generate Markdown report
+    status_str = "Error" if errors else "Success"
     report_lines = [
         "# Latest Corporate Disclosures & Regulatory Filings",
-        f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {status_str}",
         f"Query Period (Local Time): {start_dt.strftime('%Y-%m-%d %H:%M:%S')} to {end_dt.strftime('%Y-%m-%d %H:%M:%S')}",
         ""
     ]
@@ -312,58 +313,70 @@ def main():
     report_lines.append("---")
     report_lines.append("")
     
-    for symbol, announcements in all_results.items():
-        table = Table(title=f"Latest Filings for {symbol}")
-        table.add_column("Date", style="cyan", no_wrap=True)
-        table.add_column("Time", style="cyan", no_wrap=True)
-        table.add_column("Category", style="green")
-        table.add_column("Headline", style="magenta")
-        table.add_column("Attachment (PDF)", style="blue")
-        table.add_column("Sentiment", style="yellow")
-        table.add_column("Rationale", style="white")
-        
-        report_lines.append(f"## {symbol}")
-        if not announcements:
-            table.add_row("No announcements found in the query period.", "", "", "", "", "", "")
-            report_lines.append("No announcements found in the query period.\n")
-        else:
-            report_lines.append("| Date | Time | Category | Headline | PDF Link | Sentiment | Rationale |")
-            report_lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
-            for ann in announcements[:10]:  # Limit to top 10 for readability
-                dt = ann.get("News_submission_dt") or ann.get("NEWS_DT") or "N/A"
-                
-                # Split Date and Time
-                normalized_dt = dt.replace('T', ' ').strip()
-                dt_parts = normalized_dt.split(' ')
-                if len(dt_parts) == 2:
-                    date_part, time_part = dt_parts[0], dt_parts[1]
-                    if '.' in time_part:
-                        time_part = time_part.split('.')[0]
-                else:
-                    date_part = dt
-                    time_part = "N/A"
+    main_table = Table(title="Latest Filings for Portfolio")
+    main_table.add_column("Company", style="cyan", no_wrap=True)
+    main_table.add_column("Date", style="cyan", no_wrap=True)
+    main_table.add_column("Time", style="cyan", no_wrap=True)
+    main_table.add_column("Category", style="green")
+    main_table.add_column("Headline", style="magenta")
+    main_table.add_column("Attachment (PDF)", style="blue")
+    main_table.add_column("Sentiment", style="yellow")
+    main_table.add_column("Rationale", style="white")
 
-                category = ann.get("CATEGORYNAME") or "N/A"
-                headline = ann.get("HEADLINE") or ann.get("NEWSSUB") or "N/A"
-                pdf_file = ann.get("ATTACHMENTNAME")
-                
-                pdf_link = "N/A"
-                if pdf_file:
-                    pdf_link = f"https://www.bseindia.com/xml-data/corpfiling/AttachLive/{pdf_file}"
-                    pdf_display = f"[link={pdf_link}]Download PDF[/link]"
-                    markdown_pdf_link = f"[Download PDF]({pdf_link})"
-                else:
-                    pdf_display = "N/A"
-                    markdown_pdf_link = "N/A"
-                
-                sentiment, rationale = classify_sentiment(category, headline)
-                
-                table.add_row(date_part, time_part, category, headline, pdf_display, sentiment, rationale)
-                report_lines.append(f"| {date_part} | {time_part} | {category} | {headline} | {markdown_pdf_link} | {sentiment} | {rationale} |")
-            report_lines.append("")
+    report_lines.append("## All Disclosures")
+    report_lines.append("| Company | Date | Time | Category | Headline | PDF Link | Sentiment | Rationale |")
+    report_lines.append("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
+
+    has_any_announcements = False
+    
+    for symbol, announcements in all_results.items():
+        if not announcements:
+            continue
             
-        console.print(table)
-        console.print()
+        has_any_announcements = True
+        anchor = symbol.lower().replace(" ", "-")
+        
+        for i, ann in enumerate(announcements[:10]):  # Limit to top 10 for readability
+            dt = ann.get("News_submission_dt") or ann.get("NEWS_DT") or "N/A"
+            
+            # Split Date and Time
+            normalized_dt = dt.replace('T', ' ').strip()
+            dt_parts = normalized_dt.split(' ')
+            if len(dt_parts) == 2:
+                date_part, time_part = dt_parts[0], dt_parts[1]
+                if '.' in time_part:
+                    time_part = time_part.split('.')[0]
+            else:
+                date_part = dt
+                time_part = "N/A"
+
+            category = ann.get("CATEGORYNAME") or "N/A"
+            headline = ann.get("HEADLINE") or ann.get("NEWSSUB") or "N/A"
+            pdf_file = ann.get("ATTACHMENTNAME")
+            
+            pdf_link = "N/A"
+            if pdf_file:
+                pdf_link = f"https://www.bseindia.com/xml-data/corpfiling/AttachLive/{pdf_file}"
+                pdf_display = f"[link={pdf_link}]Download PDF[/link]"
+                markdown_pdf_link = f"[Download PDF]({pdf_link})"
+            else:
+                pdf_display = "N/A"
+                markdown_pdf_link = "N/A"
+            
+            sentiment, rationale = classify_sentiment(category, headline)
+            
+            main_table.add_row(symbol if i == 0 else "", date_part, time_part, category, headline, pdf_display, sentiment, rationale)
+            
+            display_sym = f"<a name=\"{anchor}\"></a>**{symbol}**" if i == 0 else f"**{symbol}**"
+            report_lines.append(f"| {display_sym} | {date_part} | {time_part} | {category} | {headline} | {markdown_pdf_link} | {sentiment} | {rationale} |")
+
+    if not has_any_announcements:
+        main_table.add_row("No announcements found in the query period.", "", "", "", "", "", "", "")
+        report_lines.append("| No announcements found in the query period. | | | | | | | |")
+        
+    report_lines.append("")
+    console.print(main_table)
+    console.print()
         
     # Append Errors & Warnings section if any occurred
     if errors:
