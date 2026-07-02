@@ -270,8 +270,10 @@ def main():
             
             if any("Negative" in s for s in sentiments):
                 stock_sentiment[symbol] = "Negative"
-            elif any("Positive" in s for s in sentiments):
+            elif any("Positive" in s and "Neutral to slightly Positive" not in s for s in sentiments):
                 stock_sentiment[symbol] = "Positive"
+            elif any("Neutral to slightly Positive" in s for s in sentiments):
+                stock_sentiment[symbol] = "Slightly Positive"
             else:
                 stock_sentiment[symbol] = "Neutral"
 
@@ -285,7 +287,7 @@ def main():
     
     # Generate Heatmap
     report_lines.append("## Portfolio Heatmap")
-    report_lines.append("> 🔴 Negative | 🟢 Positive | 🟡 Neutral | ⚪ No Disclosures")
+    report_lines.append("> 🔴 Negative | 🟢 Positive | 🔵 Slightly Positive | 🟡 Neutral")
     report_lines.append("")
     
     heatmap_parts = []
@@ -294,10 +296,13 @@ def main():
             icon = "🔴"
         elif overall_sent == "Positive":
             icon = "🟢"
+        elif overall_sent == "Slightly Positive":
+            icon = "🔵"
         elif overall_sent == "Neutral":
             icon = "🟡"
         else:
-            icon = "⚪"
+            continue  # Skip "None" entirely
+
         anchor = symbol.lower().replace(" ", "-")
         heatmap_parts.append(f"{icon} [{symbol}](#{anchor})")
         
