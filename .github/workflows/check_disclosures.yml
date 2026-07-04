@@ -24,12 +24,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests rich
+          pip install requests rich google-genai pypdf
 
       - name: Run disclosure checker
         env:
           SCHEDULED_HOUR: 17
           SCHEDULED_MIN: 30
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python check_disclosures.py
 
       - name: Commit and push changes

@@ -1,3 +1,4 @@
+import io
 import json
 import os
 import re
@@ -8,7 +9,20 @@ import requests
 from rich.console import Console
 from rich.table import Table
 
+try:
+    from google import genai
+    from google.genai import types
+    from pydantic import BaseModel
+    HAS_GENAI = True
+except ImportError:
+    HAS_GENAI = False
+
 console = Console()
+
+class SentimentResponse(BaseModel):
+    sentiment: str
+    rationale: str
+
 
 def get_scheduled_time() -> tuple[int, int]:
     """
@@ -178,13 +192,66 @@ def fetch_announcements(scrip_code: str, start_dt: datetime, end_dt: datetime, e
         errors.append(err_msg)
     return []
 
-def classify_sentiment(category: str, headline: str) -> tuple[str, str]:
+def extract_pdf_text(pdf_link: str, max_pages: int = 10) -> str:
+    """Downloads the PDF and extracts text from the first max_pages."""
+    if not pdf_link or pdf_link == "N/A":
+        return ""
+    try:
+        response = requests.get(pdf_link, timeout=15)
+        if response.status_code == 200:
+            from pypdf import PdfReader
+            pdf_file = io.BytesIO(response.content)
+            reader = PdfReader(pdf_file)
+            text_parts = []
+            num_pages = min(len(reader.pages), max_pages)
+            for i in range(num_pages):
+                page_text = reader.pages[i].extract_text()
+                if page_text:
+                    text_parts.append(page_text)
+            return "\n".join(text_parts)
+    except Exception as e:
+        console.print(f"[bold yellow][WARN][/bold yellow] Could not extract text from PDF {pdf_link}: {e}")
+    return ""
+
+def classify_sentiment(category: str, headline: str, pdf_link: str = "N/A") -> tuple[str, str]:
     """
     Classifies the sentiment of the announcement based on the category and headline.
+    If Gemini is available, uses the LLM to analyze the PDF contents (or headline).
+    Otherwise, falls back to simple heuristic matching.
     """
     cat = category.lower()
     hl = headline.lower()
     
+    # Optional LLM logic
+    if HAS_GENAI and os.getenv("GEMINI_API_KEY"):
+        try:
+            client = genai.Client()
+            pdf_text = extract_pdf_text(pdf_link)
+            prompt = f"You are an expert financial analyst. Determine the sentiment impact on the stock of the following corporate disclosure. You must categorize it strictly as 'Positive', 'Negative', 'Slightly Positive', or 'Neutral'. Provide a single-sentence rationale.\n\nHeadline: {headline}\nCategory: {category}\n\n"
+            if pdf_text:
+                prompt += f"Document Snippet:\n{pdf_text[:15000]}" # Limiting token usage roughly
+                
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=SentimentResponse,
+                    temperature=0.1,
+                ),
+            )
+            # Add a small delay to avoid rate limits
+            time.sleep(1)
+            
+            if response.text:
+                data = json.loads(response.text)
+                return data.get("sentiment", "Neutral"), data.get("rationale", "Analyzed by AI.")
+        except Exception as e:
+            console.print(f"[bold red][ERROR][/bold red] Gemini API failed for '{headline}': {e}")
+            time.sleep(2) # Backoff
+            # Fall through to heuristic logic
+
+    # Fallback Heuristic Logic
     sentiment = "Neutral"
     rationale = "Routine administrative or corporate announcement."
     
@@ -265,7 +332,13 @@ def main():
             for ann in announcements:
                 category = ann.get("CATEGORYNAME") or "N/A"
                 headline = ann.get("HEADLINE") or ann.get("NEWSSUB") or "N/A"
-                sentiment, _ = classify_sentiment(category, headline)
+                
+                pdf_file = ann.get("ATTACHMENTNAME")
+                pdf_link = "N/A"
+                if pdf_file:
+                    pdf_link = f"https://www.bseindia.com/xml-data/corpfiling/AttachLive/{pdf_file}"
+                
+                sentiment, _ = classify_sentiment(category, headline, pdf_link)
                 sentiments.append(sentiment)
             
             if any("Negative" in s for s in sentiments):
@@ -367,7 +440,7 @@ def main():
                 pdf_display = "N/A"
                 markdown_pdf_link = "N/A"
             
-            sentiment, rationale = classify_sentiment(category, headline)
+            sentiment, rationale = classify_sentiment(category, headline, pdf_link)
             
             main_table.add_row(symbol if i == 0 else "", date_part, time_part, category, headline, pdf_display, sentiment, rationale)
             
