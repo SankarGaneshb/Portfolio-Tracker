@@ -1,11 +1,11 @@
 # Latest Corporate Disclosures & Regulatory Filings
-Generated on: 2026-07-04 08:01:37 - Success
-Query Period (Local Time): 2026-07-02 17:30:00 to 2026-07-04 08:00:42
+Generated on: 2026-07-04 13:02:07 - Success
+Query Period (Local Time): 2026-07-02 17:30:00 to 2026-07-04 13:01:11
 
 ## Portfolio Heatmap
 > 🔴 Negative | 🟢 Positive | 🔵 Slightly Positive | 🟡 Neutral
 
-🟡 [Aditya Birla Fashion & Retail Ltd](#aditya-birla-fashion-&-retail-ltd) | 🟡 [Ather Energy Ltd](#ather-energy-ltd) | 🟡 [Coal India Ltd](#coal-india-ltd) | 🟡 [HCL Technologies Ltd](#hcl-technologies-ltd) | 🟡 [Hyundai Motor India Ltd](#hyundai-motor-india-ltd) | 🟡 [Kalyan Jewellers India Ltd](#kalyan-jewellers-india-ltd) | 🟡 [NTPC Green Energy Ltd](#ntpc-green-energy-ltd) | 🟡 [South Indian Bank Ltd](#south-indian-bank-ltd) | 🟡 [Tamilnad Mercantile Bank Ltd](#tamilnad-mercantile-bank-ltd) | 🟡 [Vedanta Ltd](#vedanta-ltd)
+🟡 [Aditya Birla Fashion & Retail Ltd](#aditya-birla-fashion-&-retail-ltd) | 🟡 [Ather Energy Ltd](#ather-energy-ltd) | 🟡 [Coal India Ltd](#coal-india-ltd) | 🟡 [HCL Technologies Ltd](#hcl-technologies-ltd) | 🟡 [HDFC Bank Ltd](#hdfc-bank-ltd) | 🟡 [Hyundai Motor India Ltd](#hyundai-motor-india-ltd) | 🟡 [Kalyan Jewellers India Ltd](#kalyan-jewellers-india-ltd) | 🟡 [NTPC Green Energy Ltd](#ntpc-green-energy-ltd) | 🟡 [South Indian Bank Ltd](#south-indian-bank-ltd) | 🟡 [Tamilnad Mercantile Bank Ltd](#tamilnad-mercantile-bank-ltd) | 🟡 [Vedanta Ltd](#vedanta-ltd)
 
 ---
 
@@ -18,6 +18,7 @@ Query Period (Local Time): 2026-07-02 17:30:00 to 2026-07-04 08:00:42
 | <a name="hcl-technologies-ltd"></a>**HCL Technologies Ltd** | 2026-07-03 | 19:28:56 | Company Update | Enclosed please find an intimation on the captioned subject. | [Download PDF](https://www.bseindia.com/xml-data/corpfiling/AttachLive/be6ede53-2457-4c9a-9afe-3900efacf2a9.pdf) | Neutral | Routine administrative or corporate announcement. |
 | **HCL Technologies Ltd** | 2026-07-03 | 07:36:15 | Company Update | Enclosed please find an intimation by the Company under Regulation 30 of SEBI (Listing Obligations and Disclosure Requirements) Regulations, 2015. | [Download PDF](https://www.bseindia.com/xml-data/corpfiling/AttachLive/0cf3f60b-c017-43e3-b4c5-2b9ee05ca5e6.pdf) | Neutral | Routine administrative or corporate announcement. |
 | **HCL Technologies Ltd** | 2026-07-02 | 23:44:50 | Company Update | Enclosed please find an update on the captioned subject. | [Download PDF](https://www.bseindia.com/xml-data/corpfiling/AttachLive/8121f723-e451-4e5f-a451-d3722978acf4.pdf) | Neutral | Routine administrative or corporate announcement. |
+| <a name="hdfc-bank-ltd"></a>**HDFC Bank Ltd** | 2026-07-04 | 09:04:20 | Company Update | Intimation under SEBI (Listing Obligations and Disclosure Requirements) Regulations, 2015 | [Download PDF](https://www.bseindia.com/xml-data/corpfiling/AttachLive/d8e923a2-ffd9-44cc-b0df-79b6e6c85276.pdf) | Neutral | Routine administrative or corporate announcement. |
 | <a name="hyundai-motor-india-ltd"></a>**Hyundai Motor India Ltd** | 2026-07-03 | 09:51:52 | Company Update | Certificate under Reg 74(5) of DP Regulation, 2018 for the quarter ended June 30, 2026. | [Download PDF](https://www.bseindia.com/xml-data/corpfiling/AttachLive/d2e390fd-9667-4751-a90a-a92cfa9a6f93.pdf) | Neutral | Routine administrative or corporate announcement. |
 | <a name="kalyan-jewellers-india-ltd"></a>**Kalyan Jewellers India Ltd** | 2026-07-03 | 10:00:15 | Company Update | Certificate under SEBI (Depositories and Participants) Regulations, 2018 | [Download PDF](https://www.bseindia.com/xml-data/corpfiling/AttachLive/5fa06299-9584-45bb-84a5-dcd4c5b6b1cc.pdf) | Neutral | Routine administrative or corporate announcement. |
 | <a name="ntpc-green-energy-ltd"></a>**NTPC Green Energy Ltd** | 2026-07-03 | 18:04:31 | Company Update | Press Release titled "NTPC Renewable Energy Limited, a wholly owned subsidiary of NTPC Green Energy Limited, has signed a Power Purchase Agreement (PPA) with PTC India Limited for the sale .... | [Download PDF](https://www.bseindia.com/xml-data/corpfiling/AttachLive/da426533-eb2b-41d2-9747-14028c86ef95.pdf) | Neutral | Routine administrative or corporate announcement. |
