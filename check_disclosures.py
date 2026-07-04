@@ -225,7 +225,7 @@ def classify_sentiment(category: str, headline: str, pdf_link: str = "N/A") -> t
     # Optional LLM logic
     if HAS_GENAI and os.getenv("GEMINI_API_KEY"):
         try:
-            client = genai.Client()
+            client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
             pdf_text = extract_pdf_text(pdf_link)
             prompt = f"You are an expert financial analyst. Determine the sentiment impact on the stock of the following corporate disclosure. You must categorize it strictly as 'Positive', 'Negative', 'Slightly Positive', or 'Neutral'. Provide a single-sentence rationale.\n\nHeadline: {headline}\nCategory: {category}\n\n"
             if pdf_text:
