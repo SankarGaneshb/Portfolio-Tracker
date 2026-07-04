@@ -291,8 +291,12 @@ def main():
     report_lines.append("> 🔴 Negative | 🟢 Positive | 🔵 Slightly Positive | 🟡 Neutral")
     report_lines.append("")
     
+    # Sort symbols by sentiment precedence
+    sentiment_order = {"Negative": 1, "Positive": 2, "Slightly Positive": 3, "Neutral": 4, "None": 5}
+    sorted_stocks = sorted(stock_sentiment.items(), key=lambda item: (sentiment_order[item[1]], item[0]))
+    
     heatmap_parts = []
-    for symbol, overall_sent in stock_sentiment.items():
+    for symbol, overall_sent in sorted_stocks:
         if overall_sent == "Negative":
             icon = "🔴"
         elif overall_sent == "Positive":
