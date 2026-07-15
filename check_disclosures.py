@@ -224,32 +224,43 @@ def classify_sentiment(category: str, headline: str, pdf_link: str = "N/A") -> t
     
     # Optional LLM logic
     if HAS_GENAI and os.getenv("GEMINI_API_KEY"):
-        try:
-            client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-            pdf_text = extract_pdf_text(pdf_link)
-            prompt = f"You are an expert financial analyst. Determine the sentiment impact on the stock of the following corporate disclosure. You must categorize it strictly as 'Positive', 'Negative', 'Slightly Positive', or 'Neutral'. Provide a single-sentence rationale.\n\nHeadline: {headline}\nCategory: {category}\n\n"
-            if pdf_text:
-                prompt += f"Document Snippet:\n{pdf_text[:15000]}" # Limiting token usage roughly
+        pdf_text = None
+        for attempt in range(3):
+            try:
+                client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+                if pdf_text is None:
+                    pdf_text = extract_pdf_text(pdf_link)
+                prompt = f"You are an expert financial analyst. Determine the sentiment impact on the stock of the following corporate disclosure. You must categorize it strictly as 'Positive', 'Negative', 'Slightly Positive', or 'Neutral'. Provide a single-sentence rationale.\n\nHeadline: {headline}\nCategory: {category}\n\n"
+                if pdf_text:
+                    prompt += f"Document Snippet:\n{pdf_text[:15000]}" # Limiting token usage roughly
+                    
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=SentimentResponse,
+                        temperature=0.1,
+                    ),
+                )
                 
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=SentimentResponse,
-                    temperature=0.1,
-                ),
-            )
-            # Add a small delay to avoid rate limits
-            time.sleep(1)
-            
-            if response.text:
-                data = json.loads(response.text)
-                return data.get("sentiment", "Neutral"), data.get("rationale", "Analyzed by AI.")
-        except Exception as e:
-            console.print(f"[bold red][ERROR][/bold red] Gemini API failed for '{headline}': {e}")
-            time.sleep(2) # Backoff
-            # Fall through to heuristic logic
+                # Free tier limit is 5 RPM. Wait ~12 seconds to pace it out.
+                time.sleep(12)
+                
+                if response.text:
+                    data = json.loads(response.text)
+                    return data.get("sentiment", "Neutral"), data.get("rationale", "Analyzed by AI.")
+            except Exception as e:
+                err_str = str(e)
+                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    console.print(f"[bold yellow][WARN][/bold yellow] Rate limit hit for '{headline}'. Retrying in 30s... (Attempt {attempt+1}/3)")
+                    time.sleep(30)
+                    continue
+                else:
+                    console.print(f"[bold red][ERROR][/bold red] Gemini API failed for '{headline}': {e}")
+                    time.sleep(2) # Backoff
+                    break
+        # Fall through to heuristic logic if all retries fail or non-429 error occurs
 
     # Fallback Heuristic Logic
     sentiment = "Neutral"
