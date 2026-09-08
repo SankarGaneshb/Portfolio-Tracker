@@ -1,7 +1,7 @@
 {
   "time_window": {
-    "start_time": null,
-    "end_time": null
+    "start_time": "17:30",
+    "end_time": "17:30"
   },
   "stocks": [
     "Aditya Birla Fashion & Retail Ltd",
