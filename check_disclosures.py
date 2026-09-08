@@ -492,7 +492,7 @@ def main():
     # Print results to console and generate Markdown report
     status_str = "Error" if errors else "Success"
     report_lines = [
-        "# Latest Corporate Disclosures & Regulatory Filings",
+        "# Latest Corporate Disclosures & Regulatory Filings (Source: BSE India)",
         f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {status_str}",
         f"Query Period (Local Time): {start_dt.strftime('%Y-%m-%d %H:%M:%S')} to {end_dt.strftime('%Y-%m-%d %H:%M:%S')}",
         ""
@@ -529,7 +529,7 @@ def main():
     report_lines.append("---")
     report_lines.append("")
     
-    main_table = Table(title="Latest Filings for Portfolio")
+    main_table = Table(title="Latest Filings for Portfolio (Source: BSE India)")
     main_table.add_column("Company", style="cyan", no_wrap=True)
     main_table.add_column("Date", style="cyan", no_wrap=True)
     main_table.add_column("Time", style="cyan", no_wrap=True)
