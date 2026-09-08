@@ -4,6 +4,15 @@ on:
   schedule:
     - cron: '0 12 * * *'
   workflow_dispatch:
+    inputs:
+      start_time:
+        description: 'Start time/date/duration (e.g. 09:15, 2026-09-01, 2026-09-01 09:00:00, 24h, or leave empty for auto)'
+        required: false
+        type: string
+      end_time:
+        description: 'End time/date (e.g. 17:30, 2026-09-08, 2026-09-08 17:30:00, or leave empty for now)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -30,6 +39,8 @@ jobs:
         env:
           SCHEDULED_HOUR: 17
           SCHEDULED_MIN: 30
+          START_TIME: ${{ inputs.start_time }}
+          END_TIME: ${{ inputs.end_time }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python check_disclosures.py
 

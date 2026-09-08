@@ -1,10 +1,11 @@
+import argparse
 import io
 import json
 import os
 import re
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, time as dtime, timedelta
 import requests
 from rich.console import Console
 from rich.table import Table
@@ -54,33 +55,154 @@ def get_scheduled_time() -> tuple[int, int]:
         pass
     return 17, 30  # Default fallback
 
-def get_time_window() -> tuple[datetime, datetime]:
+def parse_datetime_input(val: str | None, is_end: bool = False, reference_dt: datetime | None = None) -> datetime | None:
+    """
+    Parses a user-supplied datetime, date, time-of-day, or relative duration string.
+    Supported formats:
+      - Relative: '24h', '48h', '2d', '1w'
+      - Time-of-day: '09:15', '17:30', '17:30:00' (combined with reference date)
+      - Date-only: '2026-09-01', '01-09-2026' (start=00:00:00, end=23:59:59)
+      - ISO / standard datetime: '2026-09-01 09:15:00', '2026-09-01T09:15:00'
+    """
+    if not val or not str(val).strip() or str(val).strip().lower() in ("none", "null", ""):
+        return None
+
+    clean_val = str(val).strip()
+    ref = reference_dt or datetime.now()
+
+    # Relative duration like "24h", "2d", "1w"
+    rel_match = re.match(r"^(\d+)\s*(h|hr|hours?|d|days?|w|weeks?)$", clean_val, re.IGNORECASE)
+    if rel_match:
+        num = int(rel_match.group(1))
+        unit = rel_match.group(2).lower()
+        if unit.startswith("h"):
+            delta = timedelta(hours=num)
+        elif unit.startswith("d"):
+            delta = timedelta(days=num)
+        elif unit.startswith("w"):
+            delta = timedelta(weeks=num)
+        else:
+            delta = timedelta(hours=num)
+        return ref - delta
+
+    # Time only: HH:MM or HH:MM:SS
+    time_match = re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", clean_val)
+    if time_match:
+        hour = int(time_match.group(1))
+        minute = int(time_match.group(2))
+        second = int(time_match.group(3) or 0)
+        t = dtime(hour, minute, second)
+        return datetime.combine(ref.date(), t)
+
+    # Date only: YYYY-MM-DD or YYYY/MM/DD
+    date_match = re.match(r"^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$", clean_val)
+    if date_match:
+        y, m, d = int(date_match.group(1)), int(date_match.group(2)), int(date_match.group(3))
+        dt = datetime(y, m, d)
+        return dt.replace(hour=23, minute=59, second=59) if is_end else dt.replace(hour=0, minute=0, second=0)
+
+    # Date only: DD-MM-YYYY or DD/MM/YYYY
+    date_match_rev = re.match(r"^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$", clean_val)
+    if date_match_rev:
+        d, m, y = int(date_match_rev.group(1)), int(date_match_rev.group(2)), int(date_match_rev.group(3))
+        dt = datetime(y, m, d)
+        return dt.replace(hour=23, minute=59, second=59) if is_end else dt.replace(hour=0, minute=0, second=0)
+
+    # Standard ISO / string formats
+    iso_clean = clean_val.rstrip("Z")
+    try:
+        return datetime.fromisoformat(iso_clean)
+    except Exception:
+        pass
+
+    for fmt in (
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%d-%m-%Y %H:%M:%S",
+        "%d-%m-%Y %H:%M",
+        "%Y/%m/%d %H:%M:%S",
+        "%Y/%m/%d %H:%M",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+    ):
+        try:
+            return datetime.strptime(clean_val, fmt)
+        except Exception:
+            continue
+
+    return None
+
+def get_time_window(
+    cli_start: str | None = None,
+    cli_end: str | None = None,
+    config: dict | None = None
+) -> tuple[datetime, datetime]:
     """
     Calculates the start and end datetimes for filtering disclosures.
-    - Monday's run: from Friday's scheduled completion to Monday's start.
-    - Other days' runs: from the previous day's scheduled completion to the current start.
+    Hierarchy:
+      1. CLI arguments (--start, --end)
+      2. Environment variables (START_TIME, END_TIME, START_DATETIME, END_DATETIME, START_DATE, END_DATE)
+      3. Configuration file (portfolio_stocks.json -> "time_window" object or top-level "start_time"/"end_time")
+      4. Default auto-calculation based on scheduled run time and previous day/weekend lookback.
     """
-    sched_hour, sched_min = get_scheduled_time()
     now = datetime.now()
-    today_scheduled = now.replace(hour=sched_hour, minute=sched_min, second=0, microsecond=0)
-    
-    if now >= today_scheduled:
-        last_scheduled = today_scheduled
+
+    # 1. Resolve raw input strings
+    raw_start = cli_start
+    raw_end = cli_end
+
+    if not raw_start:
+        raw_start = os.getenv("START_TIME") or os.getenv("START_DATETIME") or os.getenv("START_DATE")
+    if not raw_end:
+        raw_end = os.getenv("END_TIME") or os.getenv("END_DATETIME") or os.getenv("END_DATE")
+
+    if config:
+        tw = config.get("time_window", {})
+        if isinstance(tw, dict):
+            if not raw_start:
+                raw_start = tw.get("start_time") or tw.get("start_datetime") or tw.get("start_date") or tw.get("start")
+            if not raw_end:
+                raw_end = tw.get("end_time") or tw.get("end_datetime") or tw.get("end_date") or tw.get("end")
+        if not raw_start:
+            raw_start = config.get("start_time") or config.get("start_datetime") or config.get("start_date")
+        if not raw_end:
+            raw_end = config.get("end_time") or config.get("end_datetime") or config.get("end_date")
+
+    # 2. Parse strings into datetime objects
+    parsed_end = parse_datetime_input(raw_end, is_end=True, reference_dt=now) if raw_end else None
+    ref_for_start = parsed_end or now
+    parsed_start = parse_datetime_input(raw_start, is_end=False, reference_dt=ref_for_start) if raw_start else None
+
+    # Handle case where both start and end are time-of-day (e.g., start="17:30", end="17:30" or start="18:00", end="09:00")
+    if parsed_start and parsed_end and parsed_start >= parsed_end:
+        if re.match(r"^\d{1,2}:\d{2}(?::\d{2})?$", str(raw_start).strip()):
+            if parsed_end.weekday() == 0:  # Monday
+                parsed_start -= timedelta(days=3)
+            else:
+                parsed_start -= timedelta(days=1)
+
+    # 3. Apply defaults if either boundary is not specified
+    end_dt = parsed_end if parsed_end else now
+
+    if parsed_start:
+        start_dt = parsed_start
     else:
-        last_scheduled = today_scheduled - timedelta(days=1)
-        
-    weekday = last_scheduled.weekday()
-    if weekday == 0:  # Monday
-        # Previous scheduled task was Friday's run (3 days ago)
-        start_dt = last_scheduled - timedelta(days=3)
-    elif weekday == 6:  # Sunday
-        # Previous scheduled task was Friday's run (2 days ago)
-        start_dt = last_scheduled - timedelta(days=2)
-    else:
-        # Previous scheduled task was the day before
-        start_dt = last_scheduled - timedelta(days=1)
-        
-    end_dt = now
+        sched_hour, sched_min = get_scheduled_time()
+        today_scheduled = end_dt.replace(hour=sched_hour, minute=sched_min, second=0, microsecond=0)
+
+        if end_dt >= today_scheduled:
+            last_scheduled = today_scheduled
+        else:
+            last_scheduled = today_scheduled - timedelta(days=1)
+
+        weekday = last_scheduled.weekday()
+        if weekday == 0:  # Monday
+            start_dt = last_scheduled - timedelta(days=3)
+        elif weekday == 6:  # Sunday
+            start_dt = last_scheduled - timedelta(days=2)
+        else:
+            start_dt = last_scheduled - timedelta(days=1)
+
     return start_dt, end_dt
 
 def parse_announcement_time(dt_str: str) -> datetime | None:
@@ -179,7 +301,7 @@ def fetch_announcements(scrip_code: str, start_dt: datetime, end_dt: datetime, e
                 dt_str = ann.get("News_submission_dt") or ann.get("NEWS_DT")
                 if dt_str:
                     ann_time = parse_announcement_time(dt_str)
-                    if ann_time and start_dt < ann_time <= end_dt:
+                    if ann_time and start_dt <= ann_time <= end_dt:
                         filtered_announcements.append(ann)
             return filtered_announcements
         else:
@@ -302,24 +424,30 @@ def classify_sentiment(category: str, headline: str, pdf_link: str = "N/A") -> t
     return sentiment, rationale
 
 def main():
+    parser = argparse.ArgumentParser(description="Fetch and analyze BSE corporate disclosures for portfolio stocks.")
+    parser.add_argument("--start", "--start-time", dest="start_time", default=None, help="Start time/date/duration (e.g. '09:15', '2026-09-01', '2026-09-01 09:00:00', '24h')")
+    parser.add_argument("--end", "--end-time", dest="end_time", default=None, help="End time/date (e.g. '17:30', '2026-09-08', '2026-09-08 17:30:00')")
+    parser.add_argument("--config", dest="config_file", default="portfolio_stocks.json", help="Path to portfolio config JSON file (default: portfolio_stocks.json)")
+    args = parser.parse_args()
+
     # Load portfolio stocks
     try:
-        with open("portfolio_stocks.json", "r") as f:
+        with open(args.config_file, "r", encoding="utf-8") as f:
             portfolio = json.load(f)
             stocks = portfolio.get("stocks", [])
     except Exception as e:
-        console.print(f"[bold red][ERROR][/bold red] Failed to load portfolio_stocks.json: {e}")
+        console.print(f"[bold red][ERROR][/bold red] Failed to load {args.config_file}: {e}")
         sys.exit(1)
         
     if not stocks:
-        console.print("[bold yellow][WARN][/bold yellow] No stocks found in portfolio_stocks.json.")
+        console.print(f"[bold yellow][WARN][/bold yellow] No stocks found in {args.config_file}.")
         sys.exit(0)
         
     all_results = {}
     errors = []
     
     # Determine the time window
-    start_dt, end_dt = get_time_window()
+    start_dt, end_dt = get_time_window(cli_start=args.start_time, cli_end=args.end_time, config=portfolio)
     console.print(f"[bold blue][INFO][/bold blue] Fetching disclosures from [yellow]{start_dt.strftime('%Y-%m-%d %H:%M:%S')}[/yellow] to [yellow]{end_dt.strftime('%Y-%m-%d %H:%M:%S')}[/yellow] (Local Time)")
     
     for symbol in stocks:
