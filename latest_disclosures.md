@@ -1,6 +1,6 @@
 # Latest Corporate Disclosures & Regulatory Filings (Source: BSE India)
-Generated on: 2026-10-14 16:11:20 - Error
-Query Period (Local Time): 2026-10-13 17:30:00 to 2026-10-14 17:30:00
+Generated on: 2026-10-15 15:58:55 - Error
+Query Period (Local Time): 2026-10-14 17:30:00 to 2026-10-15 17:30:00
 
 ## Portfolio Heatmap
 > 🔴 Negative | 🟢 Positive | 🔵 Slightly Positive | 🟡 Neutral
